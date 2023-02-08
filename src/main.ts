@@ -3,6 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as Papa from 'papaparse';
+import jspdf from 'jspdf';
 import { NgxPaginationModule } from 'ngx-pagination';
 import { PaginationInstance } from 'ngx-pagination';
 import { ApplicationPipesModule } from './pipe.module';
@@ -74,6 +75,7 @@ interface User {
   <div *ngIf="!users[users.length - 1].showEdit">
     <button class="btn btn-primary" (click)="addUser()">Add Data</button>
     <button class="btn btn-danger" (click)="downloadCSV()">Download CSV</button>
+    <button class="btn btn-success" (click)="downloadPDF()">Download PDF</button>
   </div>
   `,
 })
@@ -184,6 +186,33 @@ export class App implements OnInit {
     this.tableconfig.currentPage = Math.ceil(
       this.users.length / this.tableconfig.itemsPerPage
     );
+  }
+
+  downloadPDF() {
+    const doc = new jspdf();
+    let table =
+      '<table><thead><tr><th>Sno</th><th>Name</th><th>Age</th><th>Gender</th></tr></thead><tbody>';
+
+    this.users.forEach((user) => {
+      table +=
+        '<tr><td>' +
+        user.sno +
+        '</td><td>' +
+        user.name +
+        '</td><td>' +
+        user.age +
+        '</td><td>' +
+        user.gender +
+        '</td></tr>';
+    });
+
+    table += '</tbody></table>';
+
+    console.log(table);
+
+    // still work to be done
+    doc.text(table, 3, 3);
+    doc.save('table.pdf');
   }
 }
 
