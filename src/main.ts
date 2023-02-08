@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import * as Papa from 'papaparse';
 import { NgxPaginationModule } from 'ngx-pagination';
+import { PaginationInstance } from 'ngx-pagination';
+import { ApplicationPipesModule } from './pipe.module';
 
 import { bootstrapApplication } from '@angular/platform-browser';
 
@@ -18,52 +20,61 @@ interface User {
 @Component({
   selector: 'my-app',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgxPaginationModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    NgxPaginationModule,
+    ApplicationPipesModule,
+  ],
   template: `
-<table class="table table-bordered">
-  <thead class="thead-light">
-    <tr>
-      <th>Sno</th>
-      <th>Name</th>
-      <th>Age</th>
-      <th>Gender</th>
-      <th>Actions</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr *ngFor="let user of pagedUsers | paginate: { itemsPerPage: 5, currentPage: p }; let i = index">
-      <td>{{ user.sno }}</td>
-      <td *ngIf="!user.showEdit">{{ user.name }}</td>
-      <td *ngIf="user.showEdit">
-        <input type="text" [(ngModel)]="user.name" maxlength="100"/>
-      </td>
-      <td *ngIf="!user.showEdit">{{ user.age }}</td>
-      <td *ngIf="user.showEdit">
-        <input type="number" [(ngModel)]="user.age" max="999" />
-      </td>
-      <td *ngIf="!user.showEdit">{{ user.gender }}</td>
-      <td *ngIf="user.showEdit">
-        <select [(ngModel)]="user.gender">
-          <option [value]="'Male'">Male</option>
-          <option [value]="'Female'">Female</option>
-        </select>
-      </td>
-      <td *ngIf="!user.showEdit">
-        <button class="btn btn-primary" (click)="toggleEdit(user)">Edit</button>
-        <button class="btn btn-danger" (click)="deleteUser(user)">Delete</button>
-      </td>
-      <td *ngIf="user.showEdit">
-        <button class="btn btn-success" (click)="saveUser(user)">Save</button>
-        <button class="btn btn-danger" (click)="cancelEdit(user)">Cancel</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-<pagination-controls (pageChange)="p = $event"></pagination-controls>
-<div *ngIf="!users[users.length - 1].showEdit">
-  <button class="btn btn-primary" (click)="addUser()">Add Data</button>
-  <button class="btn btn-danger" (click)="downloadCSV()">Download CSV</button>
-</div>
+  <label class="d-block p-2">
+    Search:
+    <input type="text" [(ngModel)]="searchText" (ngModelChange)="updateCurrentPage()"/>
+  </label>
+  <table class="table table-bordered">
+    <thead class="thead-light">
+      <tr>
+        <th>Sno</th>
+        <th>Name</th>
+        <th>Age</th>
+        <th>Gender</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let user of pagedUsers | searchFilter: searchText | paginate: { itemsPerPage: tableconfig.itemsPerPage, currentPage: tableconfig.currentPage }; let i = index">
+        <td>{{ user.sno }}</td>
+        <td *ngIf="!user.showEdit">{{ user.name }}</td>
+        <td *ngIf="user.showEdit">
+          <input type="text" [(ngModel)]="user.name" maxlength="100"/>
+        </td>
+        <td *ngIf="!user.showEdit">{{ user.age }}</td>
+        <td *ngIf="user.showEdit">
+          <input type="number" [(ngModel)]="user.age" max="999" />
+        </td>
+        <td *ngIf="!user.showEdit">{{ user.gender }}</td>
+        <td *ngIf="user.showEdit">
+          <select [(ngModel)]="user.gender">
+            <option [value]="'Male'">Male</option>
+            <option [value]="'Female'">Female</option>
+          </select>
+        </td>
+        <td *ngIf="!user.showEdit">
+          <button class="btn btn-primary" (click)="toggleEdit(user)">Edit</button>
+          <button class="btn btn-danger" (click)="deleteUser(user)">Delete</button>
+        </td>
+        <td *ngIf="user.showEdit">
+          <button class="btn btn-success" (click)="saveUser(user)">Save</button>
+          <button class="btn btn-danger" (click)="cancelEdit(user)">Cancel</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <pagination-controls (pageChange)="tableconfig.currentPage = $event"></pagination-controls>
+  <div *ngIf="!users[users.length - 1].showEdit">
+    <button class="btn btn-primary" (click)="addUser()">Add Data</button>
+    <button class="btn btn-danger" (click)="downloadCSV()">Download CSV</button>
+  </div>
   `,
 })
 export class App implements OnInit {
@@ -73,7 +84,13 @@ export class App implements OnInit {
   originalName: string;
   originalAge: number;
   originalGender: string;
-  p: number = 1;
+  // p: number = 1;
+  searchText: string;
+  // pagelimit: number = 5;
+  tableconfig: PaginationInstance = {
+    itemsPerPage: 5,
+    currentPage: 1,
+  };
 
   serverUsers = [
     {
@@ -104,9 +121,11 @@ export class App implements OnInit {
     this.pagedUsers = this.users;
   }
 
-  addUser() {
-    console.log(this.users);
+  updateCurrentPage() {
+    this.tableconfig.currentPage = 1;
+  }
 
+  addUser() {
     const lastUser = this.users[this.users.length - 1];
 
     if (lastUser.name.trim().length === 0) {
@@ -123,6 +142,7 @@ export class App implements OnInit {
     };
 
     this.users.push(newUser);
+    this.calculateCurrentPage();
   }
 
   toggleEdit(user: User) {
@@ -148,6 +168,7 @@ export class App implements OnInit {
   deleteUser(user: User) {
     const index = this.users.findIndex((x) => x === user);
     this.users.splice(index, 1);
+    this.calculateCurrentPage();
   }
 
   downloadCSV() {
@@ -157,6 +178,12 @@ export class App implements OnInit {
     link.href = window.URL.createObjectURL(blob);
     link.download = 'users.csv';
     link.click();
+  }
+
+  calculateCurrentPage() {
+    this.tableconfig.currentPage = Math.ceil(
+      this.users.length / this.tableconfig.itemsPerPage
+    );
   }
 }
 
