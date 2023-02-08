@@ -31,7 +31,7 @@ interface User {
     Search:
     <input type="text" [(ngModel)]="searchText" (ngModelChange)="updateCurrentPage()"/>
   </label>
-  <table class="table table-bordered">
+  <table class="table table-bordered m-2">
     <thead class="thead-light">
       <tr>
         <th>Sno</th>
